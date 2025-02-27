@@ -30,6 +30,12 @@ class Car
         {
             gps = hasGPS;
         }
+        void carProperties()
+        {
+            cout << "Engine: " << engine << endl;
+            cout << "Seats: " << seats << endl;
+            cout << "GPS: " << (gps ? "Yes" : "No") << endl;
+        }
 };
 
 //Step 2: Create the Builder Interface (Abstract Class)
@@ -143,7 +149,6 @@ class Director
 
 int main()
 {
-  
     SportsCarBuilder* sportCar = new SportsCarBuilder();
     SUVBuilder* suv = new SUVBuilder();
 
@@ -151,6 +156,12 @@ int main()
     dicObj->setBuilder(sportCar);
     dicObj->constructSportsCar();
     Car* car = dicObj->getCar();
+    car->carProperties();
+
+    dicObj->setBuilder(suv);
+    dicObj->constructSUV();
+    car = dicObj->getCar();
+    car->carProperties();
 
     return 0;
 }
