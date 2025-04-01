@@ -57,6 +57,8 @@ class myContext{
 int main()
 {
 
+    //Implement with smart pointers and function pointer
+    
     myContext obj;
     myStrategyPayment* ptr = new PaypalPayment();
     obj.setStrategy(ptr);
