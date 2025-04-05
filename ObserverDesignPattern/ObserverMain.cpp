@@ -1,77 +1,88 @@
 #include "iostream"
 #include "vector"
 #include "algorithm"
+#include "memory"
+#include "mutex"
 
 using namespace std;
+std::mutex mtx;
 
-class observer{
+class subscriber{
 public:
-    virtual void update() = 0;
-    virtual ~observer() = default;
+    virtual void update(const string& videoTitle) = 0;
+    virtual ~subscriber() = default;
 };
 
-class subjectObserver{
-    std::vector<observer*> observerList;
+class YoutubeChannel{
+    std::vector<weak_ptr<subscriber>> subscribers;
+    const string& channelName;
 
 public:
-    void addObserver(observer* obj){
-        observerList.push_back(obj);
+
+    YoutubeChannel(const string& name) : channelName(name){}
+
+    void subscribe(shared_ptr<subscriber> sub){
+        std::lock_guard<std::mutex> lock(mtx);
+        subscribers.push_back(sub);
     }
 
-    void removeObserver(observer* obj){
-        observerList.erase(std::remove(observerList.begin(), observerList.end(), obj), observerList.end());
+    void unsubscribe(shared_ptr<subscriber> sub){
+        std::lock_guard<std::mutex> lock(mtx);
+        subscribers.erase(std::remove_if(subscribers.begin(), subscribers.end(),
+        [&sub](const weak_ptr<subscriber>& wptr){
+            auto sptr = wptr.lock();
+            return sptr == sub;
+        }),
+        subscribers.end());
     }
 
-    void notifyObservers(){
-        for(observer* obs : observerList){
-            obs->update();
+    void notifyObservers(const string& videoTitle){
+        std::lock_guard<std::mutex> lock(mtx);
+        for(auto it = subscribers.begin(); it != subscribers.end();)
+        {
+            if(auto ptr = it->lock()){
+                ptr->update(videoTitle);
+                ++it;
+            }
+            else{
+                it = subscribers.erase(it); // remove the expired subscriber
+            }
         }
     }
 
 };
 
-class concreteObserver1: public observer{
+class SubscriberA: public subscriber{
     public:
-        void update() override{
-            cout << "Update function of the concreteObserver1 class" << endl;
+        void update(const string& videoTitle) override{
+            cout << "Notifying SubscriberA : New video upload - " << videoTitle << endl;
         }
 
 };
 
-class concreteObserver2: public observer{
-
+class SubscriberB: public subscriber{
     public:
-        void update() override{
-            cout << "Update function of the concreteObserver2 class" << endl;
+         void update(const string& videoTitle) override{
+            cout << "Notifying SubscriberB : New video upload - " << videoTitle << endl;
         }
 
 };
-
-class concretesubject1: public subjectObserver{
-public:
-    void notifyObservers()
-    {
-        subjectObserver::notifyObservers();
-    }
-
-};
-
 
 int main()
 {
-    concretesubject1 subobj;
-    concreteObserver1 obj1;
-    concreteObserver2 obj2;
+    YoutubeChannel channel("MagicBeast");
+    auto subA = make_shared<SubscriberA>();
+    auto subB = make_shared<SubscriberB>();
 
-    subobj.addObserver(&obj1);
-    subobj.addObserver(&obj2);
+    channel.subscribe(subA);
+    channel.subscribe(subB);
 
     cout << "Triggering notifications" << endl;
-    subobj.notifyObservers();
+    channel.notifyObservers("New video has been uploaded");
 
     cout << "Removing observer 1 then notifying" << endl;
-    subobj.removeObserver(&obj1);
-    subobj.notifyObservers();
+    channel.unsubscribe(subA);
+    channel.notifyObservers("New video2 has been uploaded");
     
     return 0;
 }
