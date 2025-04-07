@@ -3,40 +3,46 @@
 
 using namespace std;
 
-class singleton{
+class GameSetting{
     private:
-        static singleton* instance;
+        static GameSetting* instance;
         static mutex mutex_x;
-        singleton() = default;
+        int volume{100};
+        GameSetting() = default;
 
     public:
-        static singleton* getInstance(){
-            std::lock_guard<std::mutex> lock(mutex);
-            if(instance == nullptr)
-            {
-                instance = new singleton();
-                cout << "Creating the singleton object" << endl;
-            }
-            return instance;
+        static GameSetting* getInstance(){
+            // std::lock_guard<std::mutex> lock(mutex_x);
+            // if(instance == nullptr)
+            // {
+            //     instance = new GameSetting();
+            //     cout << "Creating the GameSetting object" << endl;
+            // }
+            // return instance;
+
+            //alternate method, recommended
+            static GameSetting instance;
+            return &instance;
         }
 
-        singleton(const singleton&) = delete;
-        singleton operator=(const singleton&) = delete;
-        singleton(const singleton&&) = delete;
-        singleton operator=(const singleton&&) = delete;
+        GameSetting(const GameSetting&) = delete;
+        GameSetting& operator=(const GameSetting&) = delete;
+        GameSetting(const GameSetting&&) = delete;
+        GameSetting& operator=(const GameSetting&&) = delete;
 
-        ~singleton()
-        {
-            delete instance;
-            instance = nullptr;
-        }
+        ~GameSetting() = default;
+
+        void setVolume(int vol) { volume = vol; }
+        int getVolume() const { return volume; }
 };
 
-singleton* singleton::instance = nullptr;
-std::mutex singleton::mutex_x;
+//GameSetting* GameSetting::instance = nullptr;
+std::mutex GameSetting::mutex_x;
 
 int main()
 {
-    singleton* obj = singleton::getInstance();
-    singleton* obj1 = singleton::getInstance();
+    GameSetting* obj = GameSetting::getInstance();
+    obj->setVolume(200);
+    GameSetting* obj1 = GameSetting::getInstance();
+    cout << "Volume : " << obj1->getVolume() << endl;
 }
